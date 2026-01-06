@@ -1,5 +1,6 @@
 const Desklet = imports.ui.desklet;
 const St = imports.gi.St;
+const GLib = imports.gi.GLib;
 const Mainloop = imports.mainloop;
 const Lang = imports.lang;
 const Settings = imports.ui.settings;
@@ -7,10 +8,21 @@ const Clutter = imports.gi.Clutter;
 const Cairo = imports.cairo;
 const Gio = imports.gi.Gio;
 const Util = imports.misc.util;
+const Gettext = imports.gettext;
 
 const UUID = "memload@spekks";
+const DESKLET_ROOT = imports.ui.deskletManager.deskletMeta[UUID].path;
+
+// Translation support
+function _(str) {
+    return Gettext.dgettext(UUID, str);
+}
 
 function MemloadDesklet(metadata, deskletId) {
+    // Initialize translations
+    if (!DESKLET_ROOT.startsWith("/usr/share/")) {
+        Gettext.bindtextdomain(UUID, GLib.get_home_dir() + "/.local/share/locale");
+    }
     this._init(metadata, deskletId);
 }
 
@@ -170,7 +182,7 @@ MemloadDesklet.prototype = {
 
         // Update text
         let sub1Text, sub2Text;
-        let name = this.type === "swap" ? "Swap" : "RAM";
+        let name = this.type === "swap" ? _("Swap") : _("RAM");
 
         switch (this.textView) {
             case "free-total":
@@ -289,7 +301,7 @@ MemloadDesklet.prototype = {
     },
 
     refreshDecoration: function() {
-        let header = this.type === "swap" ? "Swap" : "Memory";
+        let header = this.type === "swap" ? _("Swap") : _("Memory");
         this.setHeader(header);
         this.metadata["prevent-decorations"] = this.hideDecorations;
         this._updateDecoration();
