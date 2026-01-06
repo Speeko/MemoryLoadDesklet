@@ -10,7 +10,7 @@ const Gio = imports.gi.Gio;
 const Util = imports.misc.util;
 const Gettext = imports.gettext;
 
-const UUID = "memload@spekks";
+const UUID = "memload@Speeko";
 const DESKLET_ROOT = imports.ui.deskletManager.deskletMeta[UUID].path;
 
 // Translation support
