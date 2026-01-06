@@ -89,7 +89,8 @@
     "circle-color": {
         "type": "colorchooser",
         "default": "rgba(83,199,160,1.0)",
-        "description": "Circle color"
+        "description": "Circle color",
+        "dependency": "use-custom-color"
     },
     "head4": {
         "type": "header",
@@ -104,5 +105,21 @@
         "type": "checkbox",
         "description": "Hide decorations",
         "default": false
+    },
+    "random-color-generated": {
+        "type": "generic",
+        "default": false
+    },
+    "random-color-r": {
+        "type": "generic",
+        "default": 1
+    },
+    "random-color-g": {
+        "type": "generic",
+        "default": 1
+    },
+    "random-color-b": {
+        "type": "generic",
+        "default": 1
     }
 }

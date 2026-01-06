@@ -1,6 +1,5 @@
 const Desklet = imports.ui.desklet;
 const St = imports.gi.St;
-const GLib = imports.gi.GLib;
 const Mainloop = imports.mainloop;
 const Lang = imports.lang;
 const Settings = imports.ui.settings;
@@ -25,6 +24,10 @@ MemloadDesklet.prototype = {
     _init: function(metadata, deskletId) {
         Desklet.Desklet.prototype._init.call(this, metadata, deskletId);
 
+        // Initialize state
+        this.timeout = null;
+        this.isDestroyed = false;
+
         // Bind settings
         this.settings = new Settings.DeskletSettings(this, this.metadata.uuid, deskletId);
         this.settings.bindProperty(Settings.BindingDirection.IN, "type", "type", this.onSettingChanged);
@@ -39,12 +42,19 @@ MemloadDesklet.prototype = {
         this.settings.bindProperty(Settings.BindingDirection.IN, "hide-decorations", "hideDecorations", this.onSettingChanged);
         this.settings.bindProperty(Settings.BindingDirection.IN, "onclick-action", "onclickAction", this.onSettingChanged);
 
-        // Generate random color if not using custom
-        this.randomColor = {
-            r: Math.random(),
-            g: Math.random(),
-            b: Math.random()
-        };
+        // Persistent random color (stored in settings)
+        this.settings.bindProperty(Settings.BindingDirection.BIDIRECTIONAL, "random-color-r", "randomColorR", null);
+        this.settings.bindProperty(Settings.BindingDirection.BIDIRECTIONAL, "random-color-g", "randomColorG", null);
+        this.settings.bindProperty(Settings.BindingDirection.BIDIRECTIONAL, "random-color-b", "randomColorB", null);
+        this.settings.bindProperty(Settings.BindingDirection.BIDIRECTIONAL, "random-color-generated", "randomColorGenerated", null);
+
+        // Generate random color once and persist it
+        if (!this.randomColorGenerated) {
+            this.randomColorR = Math.random();
+            this.randomColorG = Math.random();
+            this.randomColorB = Math.random();
+            this.randomColorGenerated = true;
+        }
 
         // Base sizes
         this.baseSize = 150;
@@ -70,38 +80,57 @@ MemloadDesklet.prototype = {
     },
 
     update: function() {
+        if (this.isDestroyed) return;
+
         this.refreshMemory();
         this.timeout = Mainloop.timeout_add_seconds(this.refreshInterval, Lang.bind(this, this.update));
     },
 
     refreshMemory: function() {
+        if (this.isDestroyed) return;
+
         let file = Gio.file_new_for_path("/proc/meminfo");
         file.load_contents_async(null, Lang.bind(this, function(file, response) {
+            // Guard against callback firing after desklet is destroyed
+            if (this.isDestroyed) return;
+
             try {
                 let [success, contents, tag] = file.load_contents_finish(response);
                 if (success) {
                     let mem = contents.toString();
-                    let used, total, free;
+                    let used = 0, total = 0, free = 0;
 
                     if (this.type === "swap") {
-                        total = parseInt(mem.match(/(SwapTotal):\D+(\d+)/)[2]) * 1024;
-                        free = parseInt(mem.match(/(SwapFree):\D+(\d+)/)[2]) * 1024;
-                    } else {
-                        total = parseInt(mem.match(/(MemTotal):\D+(\d+)/)[2]) * 1024;
-                        free = parseInt(mem.match(/(MemAvailable):\D+(\d+)/)[2]) * 1024;
-                    }
-                    used = total - free;
+                        let totalMatch = mem.match(/SwapTotal:\s*(\d+)/);
+                        let freeMatch = mem.match(/SwapFree:\s*(\d+)/);
 
+                        if (totalMatch && freeMatch) {
+                            total = parseInt(totalMatch[1]) * 1024;
+                            free = parseInt(freeMatch[1]) * 1024;
+                        }
+                    } else {
+                        let totalMatch = mem.match(/MemTotal:\s*(\d+)/);
+                        let availMatch = mem.match(/MemAvailable:\s*(\d+)/);
+
+                        if (totalMatch && availMatch) {
+                            total = parseInt(totalMatch[1]) * 1024;
+                            free = parseInt(availMatch[1]) * 1024;
+                        }
+                    }
+
+                    used = total - free;
                     let percent = total > 0 ? Math.round(used * 100 / total) : 0;
                     this.redraw(percent, used, free, total);
                 }
             } catch (e) {
-                global.logError("memload@spekks: " + e.toString());
+                global.logError(UUID + ": Error reading memory info: " + e.toString());
             }
         }));
     },
 
     redraw: function(percent, used, free, total) {
+        if (this.isDestroyed) return;
+
         let size = this.baseSize * this.scaleSize;
         let fontSize = Math.round(this.baseFontSize * this.scaleSize);
         let subFontSize = Math.round(this.baseSubFontSize * this.scaleSize);
@@ -223,14 +252,26 @@ MemloadDesklet.prototype = {
 
     getCircleColor: function() {
         if (this.useCustomColor) {
-            let colors = this.circleColor.match(/\((.*?)\)/)[1].split(",");
-            return {
-                r: parseInt(colors[0]) / 255,
-                g: parseInt(colors[1]) / 255,
-                b: parseInt(colors[2]) / 255
-            };
+            try {
+                let match = this.circleColor.match(/\((.*?)\)/);
+                if (match && match[1]) {
+                    let colors = match[1].split(",");
+                    return {
+                        r: parseInt(colors[0]) / 255,
+                        g: parseInt(colors[1]) / 255,
+                        b: parseInt(colors[2]) / 255
+                    };
+                }
+            } catch (e) {
+                global.logError(UUID + ": Error parsing color: " + e.toString());
+            }
         }
-        return this.randomColor;
+        // Return persistent random color
+        return {
+            r: this.randomColorR,
+            g: this.randomColorG,
+            b: this.randomColorB
+        };
     },
 
     getTextStyle: function(fontSize, width) {
@@ -240,10 +281,10 @@ MemloadDesklet.prototype = {
     },
 
     formatBytes: function(bytes) {
-        if (bytes === 0) return "0 B";
+        if (bytes <= 0) return "0 B";
         const units = ["B", "K", "M", "G", "T"];
         const k = 1024;
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), units.length - 1);
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + units[i];
     },
 
@@ -256,7 +297,10 @@ MemloadDesklet.prototype = {
 
     onSettingChanged: function() {
         this.refreshDecoration();
-        Mainloop.source_remove(this.timeout);
+        if (this.timeout) {
+            Mainloop.source_remove(this.timeout);
+            this.timeout = null;
+        }
         this.update();
     },
 
@@ -267,6 +311,10 @@ MemloadDesklet.prototype = {
     },
 
     on_desklet_removed: function() {
-        Mainloop.source_remove(this.timeout);
+        this.isDestroyed = true;
+        if (this.timeout) {
+            Mainloop.source_remove(this.timeout);
+            this.timeout = null;
+        }
     }
 };
