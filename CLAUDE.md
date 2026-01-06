@@ -6,12 +6,18 @@ Linux Mint Cinnamon desklet that displays RAM/Swap usage with a circular gauge.
 
 ```
 memload@spekks/
-├── desklet.js           # Main desklet logic (GJS/Clutter/Cairo)
-├── metadata.json        # Desklet metadata (name, uuid, version)
-├── settings-schema.json # Configuration options for desklet settings
-├── stylesheet.css       # CSS styling for labels
-├── icon.png             # Desklet icon (128x128)
-└── po/                  # Translations folder
+├── info.json            # Author info for Cinnamon Spices
+├── screenshot.png       # Screenshot for Cinnamon Spices
+├── README.md            # Documentation
+├── CLAUDE.md            # Claude Code instructions
+└── files/
+    └── memload@spekks/
+        ├── desklet.js           # Main desklet logic (GJS/Clutter/Cairo)
+        ├── metadata.json        # Desklet metadata (name, uuid, version)
+        ├── settings-schema.json # Configuration options for desklet settings
+        ├── stylesheet.css       # CSS styling for labels
+        ├── icon.png             # Desklet icon (128x128)
+        └── po/                  # Translations folder
 ```
 
 ## Installation
@@ -19,7 +25,7 @@ memload@spekks/
 Copy or symlink to `~/.local/share/cinnamon/desklets/memload@spekks/`
 
 ```bash
-ln -s ~/Documents/GitHub/MemoryLoadDesklet ~/.local/share/cinnamon/desklets/memload@spekks
+ln -s ~/Documents/GitHub/MemoryLoadDesklet/files/memload@spekks ~/.local/share/cinnamon/desklets/memload@spekks
 ```
 
 ## Development

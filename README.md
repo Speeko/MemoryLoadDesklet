@@ -23,7 +23,8 @@ Search for "Memory Load" in Desklets settings.
 
 ```bash
 cd ~/.local/share/cinnamon/desklets/
-git clone https://github.com/Spekks/MemoryLoadDesklet.git memload@spekks
+git clone https://github.com/Speeko/MemoryLoadDesklet.git
+ln -s MemoryLoadDesklet/files/memload@spekks memload@spekks
 ```
 
 Then right-click your desktop → Add Desklets → Memory Load
