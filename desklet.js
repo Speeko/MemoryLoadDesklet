@@ -7,6 +7,7 @@ const Settings = imports.ui.settings;
 const Clutter = imports.gi.Clutter;
 const Cairo = imports.cairo;
 const Gio = imports.gi.Gio;
+const Util = imports.misc.util;
 
 const UUID = "memload@spekks";
 
@@ -36,6 +37,7 @@ MemloadDesklet.prototype = {
         this.settings.bindProperty(Settings.BindingDirection.IN, "circle-color", "circleColor", this.onSettingChanged);
         this.settings.bindProperty(Settings.BindingDirection.IN, "show-background", "showBackground", this.onSettingChanged);
         this.settings.bindProperty(Settings.BindingDirection.IN, "hide-decorations", "hideDecorations", this.onSettingChanged);
+        this.settings.bindProperty(Settings.BindingDirection.IN, "onclick-action", "onclickAction", this.onSettingChanged);
 
         // Generate random color if not using custom
         this.randomColor = {
@@ -256,6 +258,12 @@ MemloadDesklet.prototype = {
         this.refreshDecoration();
         Mainloop.source_remove(this.timeout);
         this.update();
+    },
+
+    on_desklet_clicked: function() {
+        if (this.onclickAction === "sysmonitor") {
+            Util.spawnCommandLine("gnome-system-monitor -r");
+        }
     },
 
     on_desklet_removed: function() {

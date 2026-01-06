@@ -27,6 +27,16 @@
         "description": "Refresh interval",
         "tooltip": "How often to refresh the memory reading"
     },
+    "onclick-action": {
+        "type": "combobox",
+        "default": "sysmonitor",
+        "description": "Action on click",
+        "options": {
+            "Open System Monitor": "sysmonitor",
+            "Nothing": "nothing"
+        },
+        "tooltip": "What to do when the desklet is clicked"
+    },
     "head2": {
         "type": "header",
         "description": "Layout"
