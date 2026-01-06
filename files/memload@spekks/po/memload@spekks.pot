@@ -1,6 +1,6 @@
 # Memory Load Desklet
 # This file is put in the public domain.
-# spekks, 2025
+# Speeko, 2025
 #
 #, fuzzy
 msgid ""
